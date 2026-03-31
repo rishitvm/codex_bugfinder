@@ -34,6 +34,7 @@
   const analysisCard = document.getElementById('analysisCard');
   const testGitlabBtn = document.getElementById('testGitlabBtn');
   const testResults = document.getElementById('testResults');
+  const branchSearch = document.getElementById('branchSearch');
 
   let currentFindings = '';
   let loadingInterval = null;
@@ -159,7 +160,11 @@
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 60000);
 
-      const res = await fetch(`/branches?repoPath=${encodeURIComponent(repoPath)}`, {
+      const search = branchSearch.value.trim();
+      let url = `/branches?repoPath=${encodeURIComponent(repoPath)}`;
+      if (search) url += `&search=${encodeURIComponent(search)}`;
+
+      const res = await fetch(url, {
         signal: controller.signal
       });
       clearTimeout(timeout);

@@ -36,10 +36,13 @@
         <div class="test-results hidden" id="testResults"></div>
       </div>
       <div class="form-group">
-        <label for="branchSelect">Branch</label>
-        <select id="branchSelect" disabled>
-          <option value="">— Load branches first —</option>
-        </select>
+        <label for="branchSearch">Branch <span class="hint">(type to search, e.g. "master" or "release")</span></label>
+        <div class="input-row">
+          <input type="text" id="branchSearch" placeholder="Search branches... (leave empty to load recent)" />
+          <select id="branchSelect" disabled>
+            <option value="">— Load branches first —</option>
+          </select>
+        </div>
       </div>
       <div class="form-group">
         <label>Ruleset</label>

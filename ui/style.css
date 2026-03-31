@@ -114,6 +114,12 @@ main {
   color: #ef4444;
 }
 
+.hint {
+  font-weight: 400;
+  color: #9ca3af;
+  font-size: 0.8rem;
+}
+
 .input-row {
   display: flex;
   gap: 8px;

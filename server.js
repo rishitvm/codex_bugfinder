@@ -101,17 +101,17 @@ app.get('/test-gitlab', async (req, res) => {
 // GET /branches
 app.get('/branches', async (req, res) => {
   try {
-    const { repoPath } = req.query;
+    const { repoPath, search } = req.query;
     if (!repoPath) return res.status(400).json({ error: 'repoPath required' });
-    console.log(`[branches] Loading branches for ${repoPath}...`);
+    console.log(`[branches] Loading branches for ${repoPath}${search ? ` (search: "${search}")` : ''}...`);
     const startTime = Date.now();
 
-    // Hard timeout of 90s to prevent infinite hangs
+    // Hard timeout of 60s to prevent infinite hangs
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Branch loading timed out after 90s. The repo may have too many branches.')), 90000)
+      setTimeout(() => reject(new Error('Branch loading timed out after 60s. Try using the search filter to narrow results.')), 60000)
     );
 
-    const branches = await Promise.race([listBranches(repoPath), timeoutPromise]);
+    const branches = await Promise.race([listBranches(repoPath, search), timeoutPromise]);
     console.log(`[branches] Loaded ${branches.length} branches in ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
     res.json({ branches });
   } catch (e) {

@@ -37,24 +37,28 @@ async function getAuthHeaders(token) {
   return getAuthHeaders._cached;
 }
 
-async function listBranches(repoPath) {
+async function listBranches(repoPath, search) {
   const encodedPath = encodeURIComponent(repoPath);
   const token = process.env.GITLAB_ACCESS_TOKEN;
   const branches = [];
   let page = 1;
   const perPage = 100;
+  const maxBranches = search ? 500 : 200; // Limit: 200 default, 500 when searching
 
   const headers = await getAuthHeaders(token);
-  console.log(`[branches] Fetching branches for ${repoPath} using ${Object.keys(headers)[0]}...`);
+  console.log(`[branches] Fetching branches for ${repoPath}${search ? ` (search: "${search}")` : ''} using ${Object.keys(headers)[0]}...`);
 
   try {
-    while (true) {
+    while (branches.length < maxBranches) {
       console.log(`[branches] Fetching page ${page}...`);
+      const params = { per_page: perPage, page };
+      if (search) params.search = search;
+
       const response = await axios.get(
         `${config.gitlab.baseUrl}/api/v4/projects/${encodedPath}/repository/branches`,
         {
           headers,
-          params: { per_page: perPage, page },
+          params,
           timeout: 30000
         }
       );
