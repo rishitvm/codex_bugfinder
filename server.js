@@ -42,11 +42,18 @@ app.get('/test-gitlab', async (req, res) => {
   const results = { baseUrl, tokenPresent: true, tests: [] };
 
   // Test 1: Can we reach the GitLab instance?
+  // Any HTTP response (even 4xx) means the server is reachable.
+  // Only network errors (ECONNREFUSED, ETIMEDOUT, etc.) mean it's truly unreachable.
   try {
     await axios.get(`${baseUrl}/api/v4/version`, { timeout: 10000 });
     results.tests.push({ name: 'GitLab reachable', status: 'pass' });
   } catch (e) {
-    results.tests.push({ name: 'GitLab reachable', status: 'fail', detail: e.code || e.message });
+    if (e.response) {
+      // Got an HTTP response — server is reachable, just rejected the unauthenticated request
+      results.tests.push({ name: 'GitLab reachable', status: 'pass', detail: `HTTP ${e.response.status} (ok — server responded)` });
+    } else {
+      results.tests.push({ name: 'GitLab reachable', status: 'fail', detail: e.code || e.message });
+    }
   }
 
   // Test 2: Is the token valid? Try each auth method
