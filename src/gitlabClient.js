@@ -17,18 +17,16 @@ async function getAuthHeaders(token) {
 
   for (const headers of methods) {
     try {
+      console.log(`[auth] Trying ${Object.keys(headers)[0]}...`);
       await axios.get(`${config.gitlab.baseUrl}/api/v4/user`, {
         headers,
-        timeout: 10000
+        timeout: 5000
       });
       getAuthHeaders._cached = headers;
-      console.log('GitLab auth method:', Object.keys(headers)[0]);
+      console.log(`[auth] Success with ${Object.keys(headers)[0]}`);
       return headers;
     } catch (e) {
-      if (e.response && e.response.status !== 401 && e.response.status !== 403) {
-        // Unexpected error, try next
-        continue;
-      }
+      console.log(`[auth] ${Object.keys(headers)[0]} failed: ${e.response?.status || e.code || e.message}`);
       continue;
     }
   }
@@ -47,9 +45,11 @@ async function listBranches(repoPath) {
   const perPage = 100;
 
   const headers = await getAuthHeaders(token);
+  console.log(`[branches] Fetching branches for ${repoPath} using ${Object.keys(headers)[0]}...`);
 
   try {
     while (true) {
+      console.log(`[branches] Fetching page ${page}...`);
       const response = await axios.get(
         `${config.gitlab.baseUrl}/api/v4/projects/${encodedPath}/repository/branches`,
         {
@@ -64,6 +64,7 @@ async function listBranches(repoPath) {
       for (const branch of response.data) {
         branches.push(branch.name);
       }
+      console.log(`[branches] Page ${page}: got ${response.data.length} branches (total: ${branches.length})`);
 
       if (response.data.length < perPage) break;
       page++;

@@ -103,9 +103,19 @@ app.get('/branches', async (req, res) => {
   try {
     const { repoPath } = req.query;
     if (!repoPath) return res.status(400).json({ error: 'repoPath required' });
-    const branches = await listBranches(repoPath);
+    console.log(`[branches] Loading branches for ${repoPath}...`);
+    const startTime = Date.now();
+
+    // Hard timeout of 90s to prevent infinite hangs
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Branch loading timed out after 90s. The repo may have too many branches.')), 90000)
+    );
+
+    const branches = await Promise.race([listBranches(repoPath), timeoutPromise]);
+    console.log(`[branches] Loaded ${branches.length} branches in ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
     res.json({ branches });
   } catch (e) {
+    console.error(`[branches] Error: ${e.message}`);
     res.status(500).json({ error: e.message });
   }
 });
