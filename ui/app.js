@@ -32,6 +32,8 @@
   const indexBtn = document.getElementById('indexBtn');
   const configCard = document.getElementById('configCard');
   const analysisCard = document.getElementById('analysisCard');
+  const testGitlabBtn = document.getElementById('testGitlabBtn');
+  const testResults = document.getElementById('testResults');
 
   let currentFindings = '';
   let loadingInterval = null;
@@ -80,6 +82,58 @@
       healthDot.className = 'health-dot error';
       healthText.textContent = 'Error';
       footerHealth.textContent = 'Server unreachable';
+    }
+  }
+
+  // --- Test GitLab Connection ---
+  async function testGitlab() {
+    const repoPath = repoPathInput.value.trim();
+    testGitlabBtn.disabled = true;
+    testGitlabBtn.textContent = 'Testing...';
+    testResults.classList.remove('hidden', 'pass', 'fail');
+    testResults.innerHTML = 'Running connectivity tests...';
+
+    try {
+      const url = repoPath
+        ? `/test-gitlab?repoPath=${encodeURIComponent(repoPath)}`
+        : '/test-gitlab';
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 30000);
+
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeout);
+      const data = await res.json();
+
+      if (!res.ok) {
+        testResults.className = 'test-results fail';
+        testResults.innerHTML = data.error || 'Test failed';
+        return;
+      }
+
+      let html = `<strong>GitLab: ${data.results.baseUrl}</strong><br>`;
+      let allPass = true;
+      for (const test of data.results.tests) {
+        const icon = test.status === 'pass' ? 'PASS' : 'FAIL';
+        const iconClass = test.status === 'pass' ? 'pass' : 'fail';
+        if (test.status !== 'pass') allPass = false;
+        html += `<div class="test-row"><span class="test-icon ${iconClass}">[${icon}]</span> ${test.name}`;
+        if (test.detail) html += ` — <em>${test.detail}</em>`;
+        html += '</div>';
+      }
+
+      testResults.className = `test-results ${allPass ? 'pass' : 'fail'}`;
+      testResults.innerHTML = html;
+    } catch (e) {
+      testResults.className = 'test-results fail';
+      if (e.name === 'AbortError') {
+        testResults.innerHTML = 'Test timed out after 30s. Server may not be able to reach GitLab.';
+      } else {
+        testResults.innerHTML = 'Error: ' + e.message;
+      }
+    } finally {
+      testGitlabBtn.disabled = false;
+      testGitlabBtn.textContent = 'Test Connection';
     }
   }
 
@@ -359,6 +413,7 @@
   }
 
   // --- Event Listeners ---
+  testGitlabBtn.addEventListener('click', testGitlab);
   loadBranchesBtn.addEventListener('click', loadBranches);
   runAnalysisBtn.addEventListener('click', runAnalysis);
   copyBtn.addEventListener('click', copyFindings);

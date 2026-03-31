@@ -214,10 +214,55 @@ select:disabled {
   font-size: 0.8rem;
 }
 
+.btn-outline {
+  background: transparent;
+  color: #6366f1;
+  border: 1px solid #6366f1;
+}
+
+.btn-outline:hover {
+  background: #f0f0ff;
+}
+
 .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Test Results */
+.test-results {
+  margin-top: 10px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  line-height: 1.8;
+}
+
+.test-results.pass {
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  color: #166534;
+}
+
+.test-results.fail {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
+.test-results .test-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.test-results .test-icon {
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.test-results .test-icon.pass { color: #22c55e; }
+.test-results .test-icon.fail { color: #ef4444; }
 
 /* Loading */
 .loading-container {
