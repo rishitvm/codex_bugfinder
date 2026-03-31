@@ -94,8 +94,21 @@
     loadBranchesBtn.disabled = true;
     loadBranchesBtn.textContent = 'Loading...';
 
+    // Animate button text so user knows it's working
+    let dots = 0;
+    const loadingTimer = setInterval(() => {
+      dots = (dots + 1) % 4;
+      loadBranchesBtn.textContent = 'Loading' + '.'.repeat(dots);
+    }, 500);
+
     try {
-      const res = await fetch(`/branches?repoPath=${encodeURIComponent(repoPath)}`);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 60000);
+
+      const res = await fetch(`/branches?repoPath=${encodeURIComponent(repoPath)}`, {
+        signal: controller.signal
+      });
+      clearTimeout(timeout);
       const data = await res.json();
 
       if (!res.ok) throw new Error(data.error || 'Failed to load branches');
@@ -124,8 +137,13 @@
 
       saveToStorage();
     } catch (e) {
-      showError(e.message);
+      if (e.name === 'AbortError') {
+        showError('Request timed out after 60s. Check that your server can reach ' + config?.gitlab?.baseUrl + ' and your GITLAB_ACCESS_TOKEN is valid.');
+      } else {
+        showError(e.message);
+      }
     } finally {
+      clearInterval(loadingTimer);
       loadBranchesBtn.disabled = false;
       loadBranchesBtn.textContent = 'Load Branches';
     }

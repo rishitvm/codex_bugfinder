@@ -27,7 +27,8 @@ async function listBranches(repoPath) {
         `${config.gitlab.baseUrl}/api/v4/projects/${encodedPath}/repository/branches`,
         {
           headers,
-          params: { per_page: 1, page: 1 }
+          params: { per_page: 1, page: 1 },
+          timeout: 15000
         }
       );
       if (testResponse.status === 200) {
@@ -54,7 +55,8 @@ async function listBranches(repoPath) {
         `${config.gitlab.baseUrl}/api/v4/projects/${encodedPath}/repository/branches`,
         {
           headers: workingHeaders,
-          params: { per_page: perPage, page }
+          params: { per_page: perPage, page },
+          timeout: 15000
         }
       );
 
