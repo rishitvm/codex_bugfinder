@@ -11,12 +11,49 @@ async function listBranches(repoPath) {
   let page = 1;
   const perPage = 100;
 
+  // Try multiple auth header styles — different GitLab instances accept different ones
+  const authHeaders = [
+    { 'PRIVATE-TOKEN': token },
+    { 'Authorization': `Bearer ${token}` },
+    { 'Authorization': `token ${token}` }
+  ];
+
+  let workingHeaders = null;
+  let lastError = null;
+
+  for (const headers of authHeaders) {
+    try {
+      const testResponse = await axios.get(
+        `${config.gitlab.baseUrl}/api/v4/projects/${encodedPath}/repository/branches`,
+        {
+          headers,
+          params: { per_page: 1, page: 1 }
+        }
+      );
+      if (testResponse.status === 200) {
+        workingHeaders = headers;
+        break;
+      }
+    } catch (e) {
+      lastError = e;
+      continue;
+    }
+  }
+
+  if (!workingHeaders) {
+    const status = lastError?.response?.status || 'unknown';
+    throw new Error(
+      `Failed to list branches for ${repoPath} (HTTP ${status}). ` +
+      `Check that your GITLAB_ACCESS_TOKEN has api or read_repository scope and is valid for ${config.gitlab.baseUrl}`
+    );
+  }
+
   try {
     while (true) {
       const response = await axios.get(
         `${config.gitlab.baseUrl}/api/v4/projects/${encodedPath}/repository/branches`,
         {
-          headers: { 'PRIVATE-TOKEN': token },
+          headers: workingHeaders,
           params: { per_page: perPage, page }
         }
       );
