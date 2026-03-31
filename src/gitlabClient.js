@@ -4,6 +4,41 @@ const fs = require('fs');
 const path = require('path');
 const config = require('../config.json');
 
+async function getAuthHeaders(token) {
+  // Try each auth method against /api/v4/user to find which one works.
+  // Cache result in module scope so we only probe once per server lifetime.
+  if (getAuthHeaders._cached) return getAuthHeaders._cached;
+
+  const methods = [
+    { 'PRIVATE-TOKEN': token },
+    { 'Authorization': `Bearer ${token}` },
+    { 'Authorization': `token ${token}` }
+  ];
+
+  for (const headers of methods) {
+    try {
+      await axios.get(`${config.gitlab.baseUrl}/api/v4/user`, {
+        headers,
+        timeout: 10000
+      });
+      getAuthHeaders._cached = headers;
+      console.log('GitLab auth method:', Object.keys(headers)[0]);
+      return headers;
+    } catch (e) {
+      if (e.response && e.response.status !== 401 && e.response.status !== 403) {
+        // Unexpected error, try next
+        continue;
+      }
+      continue;
+    }
+  }
+
+  // Fallback to PRIVATE-TOKEN if none worked during probe
+  console.log('GitLab auth: falling back to PRIVATE-TOKEN');
+  getAuthHeaders._cached = { 'PRIVATE-TOKEN': token };
+  return getAuthHeaders._cached;
+}
+
 async function listBranches(repoPath) {
   const encodedPath = encodeURIComponent(repoPath);
   const token = process.env.GITLAB_ACCESS_TOKEN;
@@ -11,52 +46,16 @@ async function listBranches(repoPath) {
   let page = 1;
   const perPage = 100;
 
-  // Try multiple auth header styles — different GitLab instances accept different ones
-  const authHeaders = [
-    { 'PRIVATE-TOKEN': token },
-    { 'Authorization': `Bearer ${token}` },
-    { 'Authorization': `token ${token}` }
-  ];
-
-  let workingHeaders = null;
-  let lastError = null;
-
-  for (const headers of authHeaders) {
-    try {
-      const testResponse = await axios.get(
-        `${config.gitlab.baseUrl}/api/v4/projects/${encodedPath}/repository/branches`,
-        {
-          headers,
-          params: { per_page: 1, page: 1 },
-          timeout: 15000
-        }
-      );
-      if (testResponse.status === 200) {
-        workingHeaders = headers;
-        break;
-      }
-    } catch (e) {
-      lastError = e;
-      continue;
-    }
-  }
-
-  if (!workingHeaders) {
-    const status = lastError?.response?.status || 'unknown';
-    throw new Error(
-      `Failed to list branches for ${repoPath} (HTTP ${status}). ` +
-      `Check that your GITLAB_ACCESS_TOKEN has api or read_repository scope and is valid for ${config.gitlab.baseUrl}`
-    );
-  }
+  const headers = await getAuthHeaders(token);
 
   try {
     while (true) {
       const response = await axios.get(
         `${config.gitlab.baseUrl}/api/v4/projects/${encodedPath}/repository/branches`,
         {
-          headers: workingHeaders,
+          headers,
           params: { per_page: perPage, page },
-          timeout: 15000
+          timeout: 30000
         }
       );
 
@@ -79,7 +78,11 @@ async function listBranches(repoPath) {
 
     return branches;
   } catch (e) {
-    throw new Error(`Failed to list branches for ${repoPath}: ${e.message}`);
+    const status = e.response?.status || 'unknown';
+    throw new Error(
+      `Failed to list branches for ${repoPath} (HTTP ${status}): ${e.message}. ` +
+      `Check that your GITLAB_ACCESS_TOKEN has api or read_repository scope.`
+    );
   }
 }
 
