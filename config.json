@@ -16,7 +16,7 @@
     }
   },
   "gitlab": {
-    "baseUrl": "https://gitlab.com",
+    "baseUrl": "https://git.ringcentral.com",
     "localPath": "./codebase",
     "autoSync": true
   },
