@@ -112,8 +112,12 @@ app.get('/branches', async (req, res) => {
     );
 
     const branches = await Promise.race([listBranches(repoPath, search), timeoutPromise]);
-    console.log(`[branches] Loaded ${branches.length} branches in ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
+    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+    console.log(`[branches] DONE — loaded ${branches.length} branches in ${elapsed}s`);
+    console.log(`[branches] First 10: ${branches.slice(0, 10).join(', ')}`);
+    console.log(`[branches] Sending response to browser...`);
     res.json({ branches });
+    console.log(`[branches] Response sent successfully.`);
   } catch (e) {
     console.error(`[branches] Error: ${e.message}`);
     res.status(500).json({ error: e.message });

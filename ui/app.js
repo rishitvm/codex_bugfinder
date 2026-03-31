@@ -172,6 +172,8 @@
 
       if (!res.ok) throw new Error(data.error || 'Failed to load branches');
 
+      console.log(`[loadBranches] Received ${data.branches ? data.branches.length : 0} branches from server`);
+
       branchSelect.innerHTML = '';
       if (data.branches && data.branches.length > 0) {
         for (const branch of data.branches) {
@@ -181,6 +183,7 @@
           branchSelect.appendChild(opt);
         }
         branchSelect.disabled = false;
+        console.log(`[loadBranches] Dropdown populated with ${data.branches.length} branches — dropdown is now enabled`);
 
         // Restore saved branch if available
         const savedBranch = localStorage.getItem('bugfinder_branch');

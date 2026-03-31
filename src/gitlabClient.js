@@ -65,10 +65,14 @@ async function listBranches(repoPath, search) {
 
       if (!response.data || response.data.length === 0) break;
 
+      const pageNames = [];
       for (const branch of response.data) {
         branches.push(branch.name);
+        pageNames.push(branch.name);
       }
+      // Print actual branch names so user can verify real data
       console.log(`[branches] Page ${page}: got ${response.data.length} branches (total: ${branches.length})`);
+      console.log(`[branches]   Names: ${pageNames.slice(0, 5).join(', ')}${pageNames.length > 5 ? ', ...' : ''}`);
 
       if (response.data.length < perPage) break;
       page++;
