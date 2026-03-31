@@ -106,9 +106,9 @@ app.get('/branches', async (req, res) => {
     console.log(`[branches] Loading branches for ${repoPath}${search ? ` (search: "${search}")` : ''}...`);
     const startTime = Date.now();
 
-    // Hard timeout of 60s to prevent infinite hangs
+    // Hard timeout of 180s to allow fetching all branches from large repos
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Branch loading timed out after 60s. Try using the search filter to narrow results.')), 60000)
+      setTimeout(() => reject(new Error('Branch loading timed out after 3 minutes. Try using the branch search filter to narrow results.')), 180000)
     );
 
     const branches = await Promise.race([listBranches(repoPath, search), timeoutPromise]);

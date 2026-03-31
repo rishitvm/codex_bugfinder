@@ -158,9 +158,9 @@
 
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 60000);
+      const timeout = setTimeout(() => controller.abort(), 180000); // 3 min timeout for large repos
 
-      const search = branchSearch.value.trim();
+      const search = branchSearch ? branchSearch.value.trim() : '';
       let url = `/branches?repoPath=${encodeURIComponent(repoPath)}`;
       if (search) url += `&search=${encodeURIComponent(search)}`;
 
@@ -197,7 +197,7 @@
       saveToStorage();
     } catch (e) {
       if (e.name === 'AbortError') {
-        showError('Request timed out after 60s. Check that your server can reach ' + config?.gitlab?.baseUrl + ' and your GITLAB_ACCESS_TOKEN is valid.');
+        showError('Request timed out after 3 minutes. The repo may have too many branches — try using the branch search filter.');
       } else {
         showError(e.message);
       }
@@ -442,8 +442,5 @@
   checkHealth();
   setInterval(checkHealth, 5000);
 
-  // Auto-load branches if repoPath saved
-  if (repoPathInput.value.trim()) {
-    loadBranches();
-  }
+  // Don't auto-load branches — let the user click Load Branches manually
 })();

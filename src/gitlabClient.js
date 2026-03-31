@@ -43,13 +43,13 @@ async function listBranches(repoPath, search) {
   const branches = [];
   let page = 1;
   const perPage = 100;
-  const maxBranches = search ? 500 : 200; // Limit: 200 default, 500 when searching
+  // No artificial limit — fetch all branches
 
   const headers = await getAuthHeaders(token);
   console.log(`[branches] Fetching branches for ${repoPath}${search ? ` (search: "${search}")` : ''} using ${Object.keys(headers)[0]}...`);
 
   try {
-    while (branches.length < maxBranches) {
+    while (true) {
       console.log(`[branches] Fetching page ${page}...`);
       const params = { per_page: perPage, page };
       if (search) params.search = search;
