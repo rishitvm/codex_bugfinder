@@ -1,0 +1,146 @@
+const axios = require('axios');
+const simpleGit = require('simple-git');
+const fs = require('fs');
+const path = require('path');
+const config = require('../config.json');
+
+async function getAuthHeaders(token) {
+  // Try each auth method against /api/v4/user to find which one works.
+  // Cache result in module scope so we only probe once per server lifetime.
+  if (getAuthHeaders._cached) return getAuthHeaders._cached;
+
+  const methods = [
+    { 'PRIVATE-TOKEN': token },
+    { 'Authorization': `Bearer ${token}` },
+    { 'Authorization': `token ${token}` }
+  ];
+
+  for (const headers of methods) {
+    try {
+      console.log(`[auth] Trying ${Object.keys(headers)[0]}...`);
+      await axios.get(`${config.gitlab.baseUrl}/api/v4/user`, {
+        headers,
+        timeout: 5000
+      });
+      getAuthHeaders._cached = headers;
+      console.log(`[auth] Success with ${Object.keys(headers)[0]}`);
+      return headers;
+    } catch (e) {
+      console.log(`[auth] ${Object.keys(headers)[0]} failed: ${e.response?.status || e.code || e.message}`);
+      continue;
+    }
+  }
+
+  // Fallback to PRIVATE-TOKEN if none worked during probe
+  console.log('GitLab auth: falling back to PRIVATE-TOKEN');
+  getAuthHeaders._cached = { 'PRIVATE-TOKEN': token };
+  return getAuthHeaders._cached;
+}
+
+async function listBranches(repoPath, search) {
+  const encodedPath = encodeURIComponent(repoPath);
+  const token = process.env.GITLAB_ACCESS_TOKEN;
+  const branches = [];
+  let page = 1;
+  const perPage = 100;
+  // No artificial limit — fetch all branches
+
+  const headers = await getAuthHeaders(token);
+  console.log(`[branches] Fetching branches for ${repoPath}${search ? ` (search: "${search}")` : ''} using ${Object.keys(headers)[0]}...`);
+
+  try {
+    while (true) {
+      console.log(`[branches] Fetching page ${page}...`);
+      const params = { per_page: perPage, page };
+      if (search) params.search = search;
+
+      const response = await axios.get(
+        `${config.gitlab.baseUrl}/api/v4/projects/${encodedPath}/repository/branches`,
+        {
+          headers,
+          params,
+          timeout: 30000
+        }
+      );
+
+      if (!response.data || response.data.length === 0) break;
+
+      const pageNames = [];
+      for (const branch of response.data) {
+        branches.push(branch.name);
+        pageNames.push(branch.name);
+      }
+      // Print actual branch names so user can verify real data
+      console.log(`[branches] Page ${page}: got ${response.data.length} branches (total: ${branches.length})`);
+      console.log(`[branches]   Names: ${pageNames.slice(0, 5).join(', ')}${pageNames.length > 5 ? ', ...' : ''}`);
+
+      if (response.data.length < perPage) break;
+      page++;
+    }
+
+    // Sort: default branch first, then alphabetical
+    branches.sort((a, b) => {
+      if (a === 'main' || a === 'master') return -1;
+      if (b === 'main' || b === 'master') return 1;
+      return a.localeCompare(b);
+    });
+
+    return branches;
+  } catch (e) {
+    const status = e.response?.status || 'unknown';
+    throw new Error(
+      `Failed to list branches for ${repoPath} (HTTP ${status}): ${e.message}. ` +
+      `Check that your GITLAB_ACCESS_TOKEN has api or read_repository scope.`
+    );
+  }
+}
+
+async function syncCodebase(repoPath, branch) {
+  const localPath = config.gitlab.localPath;
+  const token = process.env.GITLAB_ACCESS_TOKEN;
+  const repoUrl = `${config.gitlab.baseUrl}/${repoPath}.git`;
+  const authUrl = repoUrl.replace('https://', `https://oauth2:${token}@`);
+
+  const gitDir = path.join(localPath, '.git');
+
+  try {
+    if (!fs.existsSync(gitDir)) {
+      // Clone fresh
+      const git = simpleGit();
+      await git.clone(authUrl, localPath, ['--branch', branch, '--single-branch']);
+      return { success: true, branch, localPath };
+    }
+
+    const git = simpleGit(localPath);
+    const currentBranch = (await git.branch()).current;
+
+    if (currentBranch !== branch) {
+      // Different branch needed
+      await git.fetch('origin');
+      try {
+        await git.checkout(branch);
+      } catch (_) {
+        await git.checkoutBranch(branch, `origin/${branch}`);
+      }
+      await git.pull('origin', branch);
+    } else {
+      // Same branch, just pull
+      await git.pull('origin', branch);
+    }
+
+    return { success: true, branch, localPath };
+  } catch (e) {
+    if (!fs.existsSync(gitDir)) {
+      throw new Error(`Failed to clone repo ${repoPath}: ${e.message}`);
+    }
+    console.log(`Warning: pull failed, using existing codebase: ${e.message}`);
+    return { success: true, warning: 'pull failed, using existing', branch, localPath };
+  }
+}
+
+async function getCurrentBranch() {
+  const git = simpleGit(config.gitlab.localPath);
+  return (await git.branch()).current;
+}
+
+module.exports = { listBranches, syncCodebase, getCurrentBranch };

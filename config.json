@@ -1,0 +1,27 @@
+{
+  "llm": {
+    "provider": "anthropic",
+    "model": "claude-sonnet-4-20250514",
+    "maxTokensExploration": 1000,
+    "maxTokensAnalysis": 8000
+  },
+  "mcp": {
+    "jira": {
+      "url": "http://mcp-atlassian-service.qtc-e2e.svc.c01.k03.k8s.ams02.int.rclabenv.com/sse",
+      "type": "sse"
+    },
+    "testit": {
+      "url": "http://mcp-testit-service.qtc-e2e.svc.c01.k03.k8s.ams02.int.rclabenv.com/sse",
+      "type": "sse"
+    }
+  },
+  "gitlab": {
+    "baseUrl": "https://git.ringcentral.com",
+    "localPath": "./codebase",
+    "autoSync": true
+  },
+  "server": {
+    "port": 3000
+  },
+  "ruleset": "v3"
+}

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BugFinder AI</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <div class="header-left">
+        <h1>BugFinder AI</h1>
+        <span class="subtitle">Adversarial QA Analysis</span>
+      </div>
+      <div class="header-right">
+        <span id="healthDot" class="health-dot"></span>
+        <span id="healthText" class="health-text">Checking...</span>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Configuration Card -->
+    <div class="card" id="configCard">
+      <h2>Configuration</h2>
+      <div class="form-group">
+        <label for="repoPath">GitLab Repo Path</label>
+        <div class="input-row">
+          <input type="text" id="repoPath" placeholder="e.g. org/repo-name" />
+          <button id="testGitlabBtn" class="btn btn-outline" title="Test GitLab API connectivity">Test Connection</button>
+          <button id="loadBranchesBtn" class="btn btn-secondary">Load Branches</button>
+        </div>
+        <div class="test-results hidden" id="testResults"></div>
+      </div>
+      <div class="form-group">
+        <label for="branchSearch">Branch <span class="hint">(type to search, e.g. "master" or "release")</span></label>
+        <div class="input-row">
+          <input type="text" id="branchSearch" placeholder="Search branches... (leave empty to load recent)" />
+          <select id="branchSelect" disabled>
+            <option value="">— Load branches first —</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Ruleset</label>
+        <div class="radio-group">
+          <label class="radio-label">
+            <input type="radio" name="ruleset" value="v3" checked /> v3
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="ruleset" value="v5" /> v5
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Analysis Card -->
+    <div class="card" id="analysisCard">
+      <h2>Analysis</h2>
+      <div class="form-group">
+        <label for="jiraTicket">Jira Ticket <span class="required">*</span></label>
+        <input type="text" id="jiraTicket" placeholder="e.g. PROJ-1234" required />
+      </div>
+      <div class="form-group">
+        <label for="testItSuites">TestIT Suite IDs</label>
+        <input type="text" id="testItSuites" placeholder="e.g. CRM-40910, CRM-40918 (optional)" />
+      </div>
+      <div class="form-group">
+        <label for="keyFiles">Key Files</label>
+        <input type="text" id="keyFiles" placeholder="e.g. SaveActionService, QuoteService (optional — helps find relevant files faster)" />
+      </div>
+      <div class="form-group">
+        <label for="responses">Responses / Logs</label>
+        <textarea id="responses" rows="5" placeholder="Paste API responses, console logs, or network tab data here (optional — helps reduce false positives)"></textarea>
+      </div>
+      <button id="runAnalysisBtn" class="btn btn-primary btn-full">Run BugFinder Analysis</button>
+    </div>
+
+    <!-- Loading State -->
+    <div class="card hidden" id="loadingCard">
+      <div class="loading-container">
+        <div class="spinner"></div>
+        <p id="loadingMessage" class="loading-message">Fetching Jira ticket...</p>
+        <p id="loadingBranch" class="loading-branch"></p>
+      </div>
+    </div>
+
+    <!-- Results Card -->
+    <div class="card hidden" id="resultsCard">
+      <h2>Results</h2>
+      <div class="summary-bar" id="summaryBar"></div>
+      <div class="files-section">
+        <button class="btn btn-secondary btn-small" id="toggleFilesBtn">Show Files Analysed</button>
+        <div class="files-list hidden" id="filesList"></div>
+      </div>
+      <div class="findings-output" id="findingsOutput"></div>
+      <div class="results-actions">
+        <button class="btn btn-secondary" id="copyBtn">Copy to Clipboard</button>
+        <button class="btn btn-secondary" id="downloadBtn">Download as .md</button>
+        <button class="btn btn-primary" id="newAnalysisBtn">New Analysis</button>
+      </div>
+    </div>
+
+    <!-- Error Display -->
+    <div class="card hidden" id="errorCard">
+      <div class="error-message" id="errorMessage"></div>
+      <button class="btn btn-primary" id="errorDismissBtn">Dismiss</button>
+    </div>
+  </main>
+
+  <footer>
+    <div class="footer-content">
+      <button class="btn btn-secondary btn-small" id="indexBtn">Index Codebase</button>
+      <span id="footerHealth" class="footer-health"></span>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
